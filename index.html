@@ -39,7 +39,7 @@
     <script>
     let CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRCoE7I08iRza6QrUuyDNqA6FFnCuuANjsBf6hogreujMgtZtPld4kichpuA-S592Gw2erVx5xLRCuR/pub?output=csv';
 
-    // 自動修正網址：確保它是以 csv 格式輸出
+    // 自動修正網址
     if (CSV_URL.includes('/edit')) {
         CSV_URL = CSV_URL.replace(/\/edit.*$/, '/export?format=csv');
     }
@@ -55,17 +55,30 @@
             if (!response.ok) throw new Error('網路回應不正常');
             
             const data = await response.text();
-            // 使用正則表達式處理換行，避免不同作業系統的換行符號問題
+            
+            // 在開發者工具印出原始資料，方便你除錯
+            console.log("從 Google Sheets 抓到的原始資料：\n", data);
+
             const rows = data.split(/\r?\n/).filter(row => row.trim() !== '').slice(1);
             
             tableBody.innerHTML = '';
 
             rows.forEach(row => {
-                // 處理 CSV 欄位，考慮到內容可能有逗號的情況（簡單處理）
-                const cols = row.split(',').map(c => c.replace(/"/g, '').trim());
-                if (cols.length < 5) return;
+                // 容許逗號或分號分割 (解決不同地區 Google Sheets 的格式差異)
+                const cols = row.split(/,|;/).map(c => c.replace(/"/g, '').trim());
+                
+                // 只要有至少 3 個欄位就試著顯示
+                if (cols.length < 3) return;
 
-                const [id, location, firmware, temp, status, lastSeen] = cols;
+                const id = cols[0];
+                const location = cols[1];
+                
+                // 動態尋找狀態欄位：只要該欄位寫著 Online 或 Offline 就抓出來
+                const status = cols.find(c => c.toLowerCase() === 'online' || c.toLowerCase() === 'offline') || 'Unknown';
+                
+                // 假設最後一個欄位是時間
+                const lastSeen = cols[cols.length - 1];
+
                 const isOnline = status.toLowerCase() === 'online';
                 const statusClass = isOnline ? 'dot-online' : 'dot-offline';
                 const statusTextColor = isOnline ? 'text-green-400' : 'text-red-400';
@@ -77,7 +90,7 @@
                         <td class="px-6 py-4 whitespace-nowrap flex items-center ${statusTextColor}">
                             <span class="${statusClass}"></span> ${status}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${lastSeen || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${lastSeen}</td>
                     </tr>
                 `;
             });
@@ -85,7 +98,6 @@
         } catch (error) {
             console.error('Fetch error:', error);
             updateStatus.innerText = '錯誤: 無法讀取資料';
-            tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">無法載入數據，請確認 Google Sheets 已發佈為 CSV 格式。</td></tr>`;
         }
     }
 
