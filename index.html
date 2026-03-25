@@ -76,10 +76,10 @@
                 allData = rows.slice(1).map(row => {
                     const cols = row.split(',');
                     return {
-                        name: cols[5],     // 對應停車場
-                        status: cols[6],   // 狀態
-                        operator: cols[4], // 營運單位
-                        address: cols[9]   // 地址
+                        name: cols[4],     // 對應停車場
+                        status: cols[5],   // 狀態
+                        operator: cols[3], // 營運單位
+                        address: cols[8]   // 地址
                     };
                 });
 
